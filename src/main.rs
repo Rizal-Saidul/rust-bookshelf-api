@@ -1,4 +1,26 @@
 use axum::{ Router, routing::get };
+use chrono::{ NaiveDate, NaiveDateTime };
+use serde::{ Deserialize, Serialize };
+use sqlx::prelude::FromRow;
+
+#[derive(Deserialize)]
+struct Bookpayload {
+    title: String,
+    author: Option<String>,
+    stock: i32,
+    published_date: Option<NaiveDate>,
+    created_at: NaiveDateTime,
+}
+
+#[derive(Serialize, FromRow)]
+struct Book {
+    id: i32,
+    title: String,
+    author: Option<String>,
+    published_date: Option<NaiveDate>,
+    stock: i32,
+    created_at: NaiveDateTime,
+}
 
 #[tokio::main]
 async fn main() {
