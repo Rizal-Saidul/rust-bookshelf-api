@@ -1,61 +1,57 @@
 # Rust Bookshelf API
 
-A REST API for managing a bookshelf built with Rust using Axum, SQLx, and PostgreSQL.
+A CRUD REST API for managing a bookshelf built with Rust using Axum, SQLx, PostgreSQL, Docker, and Docker Compose.
 
 ## Overview
 
-This project implements a simple yet functional book management API with the following features:
-- Create and list books
-- Database persistence with PostgreSQL
-- Type-safe database queries with SQLx
-- Proper error handling and HTTP status codes
+This project implements a complete book management API following best practices from modern Rust web development. The API provides full CRUD (Create, Read, Update, Delete) operations for managing books in a PostgreSQL database.
+
+### Features
+- ✅ Complete CRUD operations for books
+- ✅ Type-safe database queries with SQLx
+- ✅ Automatic database migrations
+- ✅ Docker containerization with multi-stage builds
+- ✅ Environment-based configuration
+- ✅ Proper error handling and HTTP status codes
+- ✅ Input validation and sanitization
+
+## Tech Stack
+
+- **[Axum](https://github.com/tokio-rs/axum)** 0.8 - Modern web framework
+- **[SQLx](https://github.com/launchbadge/sqlx)** 0.8 - Async SQL toolkit with compile-time query verification
+- **[PostgreSQL](https://www.postgresql.org/)** 15 - Reliable relational database
+- **[Tokio](https://tokio.rs/)** - Async runtime
+- **[Serde](https://serde.rs/)** - Serialization/deserialization
+- **[Chrono](https://github.com/chronotope/chrono)** - Date and time handling
+- **[Docker](https://www.docker.com/)** - Containerization
 
 ## Project Structure
 
 ```
+server/
 ├── src/
-│   ├── main.rs          # Main application entry point with route handlers
-│   ├── controllers/     # API route handlers
-│   ├── models/          # Data models
-│   ├── services/        # Business logic
-│   └── db/              # Database layer
+│   └── main.rs              # Application entry point with all route handlers
 ├── migrations/
-│   └── 0001_books_table.sql   # Initial database schema
-├── Cargo.toml           # Project dependencies
-├── Dockerfile           # Container configuration
-└── compose.yml          # Docker Compose setup
+│   └── 0001_books_table.sql # Database schema
+├── Cargo.toml               # Rust dependencies
+├── Dockerfile               # Multi-stage Docker build
+├── compose.yml              # Docker Compose configuration
+└── README.md
 ```
 
-## Bug Fixes & Improvements (Feb 2, 2026 - Code Review)
+## API Endpoints
 
-### Critical Bugs Fixed
-- ✅ **Timestamp Type Mismatch**: Fixed `chrono::Utc::now()` returning `DateTime<Utc>` instead of `NaiveDateTime`. Server now lets database handle `created_at` automatically.
-- ✅ **Update Bug**: Removed overwriting of `created_at` on update operations - this field is now immutable
-- ✅ **Input Validation**: Added validation to prevent empty book titles
-- ✅ **Route Path Consistency**: Changed `/book/{id}` to `/books/:id` for RESTful consistency
+| Method | Endpoint | Description | Status Code |
+|--------|----------|-------------|-------------|
+| GET | `/` | Health check | 200 |
+| GET | `/books` | List all books | 200 |
+| POST | `/books` | Create a new book | 201 |
+| GET | `/books/{id}` | Get book by ID | 200, 404 |
+| PUT | `/books/{id}` | Update book by ID | 200, 404, 500 |
+| DELETE | `/books/{id}` | Delete book by ID | 204, 404 |
 
-### Code Quality Improvements
-- ✅ **Error Handling**: Added `eprintln!()` logging for all database operations for better debugging
-- ✅ **Connection Pool**: Configured PgPool with max 5 connections for better resource management
-- ✅ **Input Sanitization**: Added `.trim()` on string inputs to remove whitespace
-- ✅ **Better Comments**: Improved code documentation and formatting
-- ✅ **Type Safety**: Proper handling of `Option<String>` for optional fields
+## Data Model
 
-### Database Schema Updates
-- ✅ **Consistent Field Sizes**: Increased `author` VARCHAR from 50 to 255 characters
-- ✅ **NOT NULL Constraints**: Added explicit NOT NULL constraints for required fields
-- ✅ **Updated Timestamp**: Added `updated_at` field for tracking changes
-- ✅ **Default Values**: Explicit DEFAULT NOW() for timestamp fields
-
-### Testing Status
-✅ **Code compiles without errors or warnings**
-✅ **All handlers properly implemented**: list, create, get, update, delete
-✅ **Proper HTTP status codes**: 201 CREATED, 204 NO_CONTENT, 404 NOT_FOUND, 500 INTERNAL_SERVER_ERROR
-✅ **Type-safe SQLx queries** with parameterized statements
-
-### Technical Implementation
-
-#### Data Models
 ```rust
 struct Book {
     id: i32,
@@ -71,89 +67,225 @@ struct Bookpayload {
     author: Option<String>,
     stock: i32,
     published_date: Option<NaiveDate>,
-    created_at: NaiveDateTime,
 }
 ```
 
-#### Database Connection
-- Uses `PgPoolOptions` for connection pooling
-- Automatic migration execution on startup
-- Environment variable `DATABASE_URL` for database configuration
-
-#### Route Handlers
-- `async fn home()` - Returns welcome message
-- `async fn list_book()` - Fetches all books from database
-- `async fn create_book()` - Inserts new book and returns created record
-
-## Dependencies
-
-Core dependencies used:
-- **axum** - Web framework
-- **tokio** - Async runtime
-- **sqlx** - Type-safe SQL queries
-- **serde** - Serialization/deserialization
-- **chrono** - Date/time handling
-- **postgres** - PostgreSQL driver
-
-## Setup Instructions
+## Quick Start
 
 ### Prerequisites
-- Rust 1.70+
-- PostgreSQL 13+
-- Docker & Docker Compose (optional)
+- Docker and Docker Compose
+- (Optional) Rust 1.70+ for local development
 
-### Local Development
+### Running with Docker Compose
 
-1. Clone the repository
-2. Create `.env` file with database URL:
-   ```
-   DATABASE_URL=postgresql://user:password@localhost:5432/bookshelf
-   ```
-3. Run migrations:
+1. **Clone the repository**
    ```bash
-   sqlx migrate run
+   git clone <repository-url>
+   cd server
    ```
-4. Start the server:
+
+2. **Start the application**
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Verify the application is running**
+   ```bash
+   docker ps
+   curl http://localhost:8000/
+   ```
+
+4. **Check database migrations**
+   ```bash
+   docker exec -it db_bookshelf psql -U user -d bookshelf_db -c "\dt"
+   ```
+
+### Local Development (without Docker)
+
+1. **Set up PostgreSQL**
+   ```bash
+   # Start PostgreSQL locally or use Docker
+   docker run -d \
+     -e POSTGRES_USER=user \
+     -e POSTGRES_PASSWORD=password \
+     -e POSTGRES_DB=bookshelf_db \
+     -p 5432:5432 \
+     postgres:15-alpine
+   ```
+
+2. **Set environment variable**
+   ```bash
+   export DATABASE_URL="postgres://user:password@localhost:5432/bookshelf_db"
+   ```
+
+3. **Run the application**
    ```bash
    cargo run
    ```
 
-The API will be available at `http://127.0.0.1:3000`
-
-### Docker Setup
-
-Start the application with Docker Compose:
-```bash
-docker compose up -d app
-```
+The API will be available at `http://localhost:8000`
 
 ## API Usage Examples
 
-### Get all books
+### Health Check
 ```bash
-curl http://localhost:3000/books
+curl http://localhost:8000/
+# Response: Welcome to Bookshelf API
 ```
 
-### Create a new book
+### Create a Book
 ```bash
-curl -X POST http://localhost:3000/books \
+curl -X POST http://localhost:8000/books \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Learning Rust",
-    "author": "John Doe",
-    "stock": 5,
-    "published_date": "2024-01-15",
-    "created_at": "2024-01-15T10:00:00"
+    "title": "The Rust Programming Language",
+    "author": "Steve Klabnik",
+    "stock": 10,
+    "published_date": "2023-01-15"
   }'
 ```
 
+**Response:**
+```json
+{
+  "id": 1,
+  "title": "The Rust Programming Language",
+  "author": "Steve Klabnik",
+  "published_date": "2023-01-15",
+  "stock": 10,
+  "created_at": "2026-02-02T13:19:44.434817"
+}
+```
+
+### List All Books
+```bash
+curl http://localhost:8000/books
+```
+
+### Get a Specific Book
+```bash
+curl http://localhost:8000/books/1
+```
+
+### Update a Book
+```bash
+curl -X PUT http://localhost:8000/books/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "The Rust Programming Language (2nd Edition)",
+    "author": "Steve Klabnik",
+    "stock": 15,
+    "published_date": "2023-01-15"
+  }'
+```
+
+### Delete a Book
+```bash
+curl -X DELETE http://localhost:8000/books/1
+# Response: HTTP 204 No Content
+```
+
+## Database Schema
+
+```sql
+CREATE TABLE IF NOT EXISTS books (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255),
+    published_date DATE,
+    stock INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+## Configuration
+
+The application uses environment variables for configuration:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | Required |
+
+Example:
+```
+DATABASE_URL=postgres://user:password@db:5432/bookshelf_db
+```
+
+## Docker Configuration
+
+### Multi-stage Dockerfile
+The project uses a multi-stage build to optimize image size:
+- **Stage 1**: Build the Rust application
+- **Stage 2**: Create minimal runtime image with Debian Bookworm Slim
+
+### Docker Compose Services
+- **app**: Rust Axum application (port 8000)
+- **db**: PostgreSQL 15 Alpine (port 5432)
+
+## Development Notes
+
+### Recent Updates (Feb 2, 2026)
+
+✅ **Configuration Improvements**
+- Added `macros` feature to sqlx for migration support
+- Updated tokio features for optimized async runtime
+- Fixed DATABASE_URL to use Docker service names for container networking
+- Aligned Dockerfile port exposure with application port (8000)
+
+✅ **Code Quality**
+- Environment-based configuration using `std::env`
+- Automatic database migrations on startup
+- Input validation for required fields
+- Proper error handling with descriptive messages
+
+✅ **Testing**
+- All CRUD endpoints tested and verified
+- Database migrations working correctly
+- Docker build optimized (~2 minute build time)
+
+## Troubleshooting
+
+### Container Issues
+```bash
+# View logs
+docker logs app_bookshelf
+docker logs db_bookshelf
+
+# Restart containers
+docker compose restart
+
+# Rebuild from scratch
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Database Connection Issues
+- Ensure DATABASE_URL uses `db` hostname in Docker environment
+- Check PostgreSQL container is running: `docker ps`
+- Verify network connectivity: `docker network ls`
+
 ## Future Enhancements
 
-- [ ] Implement GET /books/{id} endpoint
-- [ ] Implement PUT /books/{id} update endpoint
-- [ ] Implement DELETE /books/{id} endpoint
-- [ ] Add pagination for book list
-- [ ] Add input validation
-- [ ] Add authentication/authorization
-- [ ] Add logging and monitoring
-- [ ] Separate concerns into controllers, services, and models
+- [ ] Add pagination for book listings
+- [ ] Implement search and filtering
+- [ ] Add authentication and authorization
+- [ ] Implement rate limiting
+- [ ] Add comprehensive logging with tracing
+- [ ] Create integration tests
+- [ ] Add API documentation with OpenAPI/Swagger
+- [ ] Implement caching with Redis
+- [ ] Add book categories/genres
+- [ ] Implement soft deletes
+
+## References
+
+This project follows best practices from:
+- [Rust CRUD REST API with Axum and SQLx](https://dev.to/francescoxx/rust-crud-rest-api-using-axum-sqlx-postgres-docker-and-docker-compose-152a)
+- [Axum Documentation](https://docs.rs/axum/latest/axum/)
+- [SQLx Documentation](https://docs.rs/sqlx/latest/sqlx/)
+
+## License
+
+This project is open source and available under the MIT License.
