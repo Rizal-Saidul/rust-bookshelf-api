@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS books (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(225) NOT NULL,
-    author VARCHAR(50),
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255),
     published_date DATE,
-    stock INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW()
-)
+    stock INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
