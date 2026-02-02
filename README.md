@@ -26,17 +26,32 @@ This project implements a simple yet functional book management API with the fol
 └── compose.yml          # Docker Compose setup
 ```
 
-## Recent Updates (Feb 2, 2026)
+## Bug Fixes & Improvements (Feb 2, 2026 - Code Review)
 
-### Features Implemented
-- **Database Models**: Created `Book` and `BookPayload` structs with proper serialization/deserialization
-- **Database Integration**: Implemented PostgreSQL connection pool using SQLx
-- **API Endpoints**:
-  - `GET /` - Home/welcome endpoint
-  - `GET /books` - Retrieve all books from database
-  - `POST /books` - Create a new book entry
-- **Error Handling**: Proper HTTP status codes (201 CREATED, 500 INTERNAL_SERVER_ERROR)
-- **Migrations**: SQLx migrations for database schema management
+### Critical Bugs Fixed
+- ✅ **Timestamp Type Mismatch**: Fixed `chrono::Utc::now()` returning `DateTime<Utc>` instead of `NaiveDateTime`. Server now lets database handle `created_at` automatically.
+- ✅ **Update Bug**: Removed overwriting of `created_at` on update operations - this field is now immutable
+- ✅ **Input Validation**: Added validation to prevent empty book titles
+- ✅ **Route Path Consistency**: Changed `/book/{id}` to `/books/:id` for RESTful consistency
+
+### Code Quality Improvements
+- ✅ **Error Handling**: Added `eprintln!()` logging for all database operations for better debugging
+- ✅ **Connection Pool**: Configured PgPool with max 5 connections for better resource management
+- ✅ **Input Sanitization**: Added `.trim()` on string inputs to remove whitespace
+- ✅ **Better Comments**: Improved code documentation and formatting
+- ✅ **Type Safety**: Proper handling of `Option<String>` for optional fields
+
+### Database Schema Updates
+- ✅ **Consistent Field Sizes**: Increased `author` VARCHAR from 50 to 255 characters
+- ✅ **NOT NULL Constraints**: Added explicit NOT NULL constraints for required fields
+- ✅ **Updated Timestamp**: Added `updated_at` field for tracking changes
+- ✅ **Default Values**: Explicit DEFAULT NOW() for timestamp fields
+
+### Testing Status
+✅ **Code compiles without errors or warnings**
+✅ **All handlers properly implemented**: list, create, get, update, delete
+✅ **Proper HTTP status codes**: 201 CREATED, 204 NO_CONTENT, 404 NOT_FOUND, 500 INTERNAL_SERVER_ERROR
+✅ **Type-safe SQLx queries** with parameterized statements
 
 ### Technical Implementation
 
