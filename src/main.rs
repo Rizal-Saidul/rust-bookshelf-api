@@ -1,5 +1,11 @@
 use std::env;
-use axum::{ Json, Router, extract::{ Path, State }, http::StatusCode, routing::get };
+use axum::{
+    Json,
+    Router,
+    extract::{ Path, State },
+    http::StatusCode,
+    routing::{ get },
+};
 use chrono::{ NaiveDate, NaiveDateTime };
 use serde::{ Deserialize, Serialize };
 use sqlx::{ PgPool, postgres::PgPoolOptions, prelude::FromRow };
@@ -25,17 +31,13 @@ struct Book {
 #[tokio::main]
 async fn main() {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url).await
-        .expect("Failed to connect to DB");
-
+    let pool = PgPoolOptions::new().connect(&db_url).await.expect("Failed to connect to DB");
     sqlx::migrate!().run(&pool).await.expect("Migration failed");
 
     let app = Router::new()
         .route("/", get(home))
         .route("/books", get(list_book).post(create_book))
-        .route("/books/:id", get(get_book).put(update_book).delete(delete_book))
+        .route("/books/{id}", get(get_book).put(update_book).delete(delete_book))
         .with_state(pool);
 
     let listener = tokio::net::TcpListener
@@ -52,7 +54,7 @@ async fn home() -> &'static str {
 
 // Get all books
 async fn list_book(State(pool): State<PgPool>) -> Result<Json<Vec<Book>>, StatusCode> {
-    sqlx::query_as::<_, Book>("SELECT * FROM books ORDER BY created_at DESC")
+    sqlx::query_as::<_, Book>("SELECT * FROM books")
         .fetch_all(&pool).await
         .map(Json)
         .map_err(|e| {
