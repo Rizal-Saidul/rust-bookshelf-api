@@ -1,4 +1,14 @@
 services:
+  app:
+    container_name: app_bookshelf
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/bookshelf_db
+
   db:
     image: postgres:15-alpine
     container_name: db_bookshelf

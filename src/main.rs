@@ -1,5 +1,5 @@
 use std::env;
-use axum::{ Json, Router, extract::State, http::StatusCode, routing::get };
+use axum::{ Json, Router, extract::{ Path, State }, http::StatusCode, routing::get };
 use chrono::{ NaiveDate, NaiveDateTime };
 use serde::{ Deserialize, Serialize };
 use sqlx::{ PgPool, postgres::PgPoolOptions, prelude::FromRow };
@@ -32,11 +32,10 @@ async fn main() {
     let app = Router::new()
         .route("/", get(home))
         .route("/books", get(list_book).post(create_book))
+        .route("/book/{id}", get(get_book).put(update_book).delete(delete_book))
         .with_state(pool);
 
-    // .route("/book/{id}", get(get_book).put(put_book).delete(delete_book))
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -68,4 +67,54 @@ async fn create_book(
         .fetch_one(&pool).await
         .map(|u| (StatusCode::CREATED, Json(u)))
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+// get book by Id
+async fn get_book(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>
+) -> Result<Json<Book>, StatusCode> {
+    sqlx::query_as::<_, Book>("SELECT * FROM books WHERE id = $1")
+        .bind(id)
+        .fetch_one(&pool).await
+        .map(Json)
+        .map_err(|_| StatusCode::NOT_FOUND)
+}
+
+// Update book
+async fn update_book(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>,
+    Json(payload): Json<Bookpayload>
+) -> Result<Json<Book>, StatusCode> {
+    sqlx::query_as::<_, Book>(
+        "UPDATE books SET title = $1, author = $2, published_date = $3, stock = $4, created_at = $5 WHERE id = $6"
+    )
+        .bind(payload.title)
+        .bind(payload.author)
+        .bind(payload.published_date)
+        .bind(payload.stock)
+        .bind(payload.created_at)
+        .bind(id)
+        .fetch_one(&pool).await
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+// delete book
+async fn delete_book(
+    State(pool): State<PgPool>,
+    Path(id): Path<i32>
+) -> Result<StatusCode, StatusCode> {
+    let result = sqlx
+        ::query(" DELETE FROM books WHERE id = $1")
+        .bind(id)
+        .execute(&pool).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if  result.rows_affected() == 0  {
+        Err(StatusCode::NOT_FOUND)
+    } else {
+        Ok(StatusCode::NO_CONTENT)
+    }
 }
